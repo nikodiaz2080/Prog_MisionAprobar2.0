@@ -1,7 +1,52 @@
 [
     {
-        "nombre": "prueba",
-        "puntaje": 90,
-        "fecha": "08/07/2025 18:34"
+        "nombre": "nico",
+        "puntos": 200,
+        "fecha": "2025-07-10 06:38:58"
+    },
+    {
+        "nombre": "jose",
+        "puntos": 10,
+        "fecha": "2025-07-10 06:39:32"
+    },
+    {
+        "nombre": "pepe",
+        "puntos": 60,
+        "fecha": "2025-07-10 06:39:32"
+    },
+    {
+        "nombre": "rodolfo",
+        "puntos": 100,
+        "fecha": "2025-07-10 06:39:32"
+    },
+    {
+        "nombre": "iara",
+        "puntos": 45,
+        "fecha": "2025-07-10 14:55:15"
+    },
+    {
+        "nombre": "joaxi",
+        "puntos": -100,
+        "fecha": "2025-07-10 18:18:05"
+    },
+    {
+        "nombre": "aa",
+        "puntos": 40,
+        "fecha": "2025-07-10 18:19:24"
+    },
+    {
+        "nombre": "332",
+        "puntos": 0,
+        "fecha": "2025-07-10 18:20:48"
+    },
+    {
+        "nombre": "33",
+        "puntos": 40,
+        "fecha": "2025-07-10 18:21:31"
+    },
+    {
+        "nombre": "JOAXI 2",
+        "puntos": 75,
+        "fecha": "2025-07-10 18:22:15"
     }
 ]

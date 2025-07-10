@@ -1,213 +1,243 @@
-import pygame # para gráficos, sonidos, eventos.
-import sys #para cerrar el juego correctamente con sys.exit().
-import csv #lee las preguntas
-import random # para mezclar el orden de las preguntas y respuestas
+import pygame
+import csv
+import random
+import textwrap
 import json
+
 from datetime import datetime
+from assets import get_parametro, get_imagen, dibujar_texto
+from audio import sfx
+from eventos import monitorear_eventos
 
-from config import ANCHO, ALTO, BLANCO, AZUL, NEGRO, FPS
-from assets import cargar_imagen, cargar_sonido 
+NEGRO  = get_parametro("Colores", "Negro", tuple)
+GRIS  = get_parametro("Colores", "Gris", tuple)
+BLANCO = get_parametro("Colores", "Blanco", tuple)
+AZUL   = get_parametro("Colores", "Azul", tuple)
 
-def guardar_puntaje(nombre, puntos):
+ANCHO, ALTO = get_parametro("General", "Resolucion", tuple)
+ESCALAR = (ANCHO + ALTO) / 2
+
+def cargar_preguntas(dificultad):
+    with open("preguntas.csv", encoding="utf-8") as archivo:
+        preguntas = [ fila for fila in csv.DictReader(archivo) if fila["dificultad"] == dificultad ]
+    random.shuffle(preguntas)
+    return preguntas
+
+def siguiente_dificultad(actual):
+    orden = ["Facil", "Medio", "Dificil"]
+    i = orden.index(actual)
+    return orden[(i + 1) % len(orden)]
+
+def comprobar_aciertos(vidas, aciertos, comodin, tiempo_restante, tiempo_general, dificultad):
+    if aciertos >= get_parametro(dificultad, "Aciertos_Consecutivos", int):
+        vidas += 1
+        aciertos = 0
+        comodin = True
+        if tiempo_general:
+            tiempo_restante += get_parametro(dificultad, "Sumar_Tiempo", int) * 1000
+            
+    return vidas, aciertos, comodin, tiempo_restante
+
+def dividir_texto(texto, max_caracteres=35):
+    return textwrap.wrap(texto, width=max_caracteres)
+
+def guardar_partida(nombre, puntos):
+    datos = []
     try:
         with open("partidas.json", "r", encoding="utf-8") as archivo:
-            lista = json.load(archivo)
-    except:
-        lista = []
+            contenido = archivo.read().strip()
+            if contenido:
+                datos = json.loads(contenido)
+            else:
+                datos = []
+    except (FileNotFoundError, json.JSONDecodeError):
+        datos = []
 
-    nueva_partida = {
+    datos.append({
         "nombre": nombre,
-        "puntaje": puntos,
-        "fecha": datetime.now().strftime("%d/%m/%Y %H:%M")
-    }
-
-    lista.append(nueva_partida)
+        "puntos": puntos,
+        "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    })
 
     with open("partidas.json", "w", encoding="utf-8") as archivo:
-        json.dump(lista, archivo, indent=4)
+        json.dump(datos, archivo, indent=4, ensure_ascii=False)
 
+def mostrar_final(pantalla, fuente, puntos, victoria=False):
+    if victoria:
+        msg_final = ["¡Has ganado, bien jugado!", f"Puntos finales: {puntos}"]
+    else:
+        msg_final = ["¡Has perdido, buen intento!", f"Puntos finales: {puntos}"]
+        
+    for i, texto in enumerate(msg_final):
+        text_rect = fuente.get_rect(texto)
+        x = (ANCHO - text_rect.width) // 2
+        y = ALTO // 3 + i * (text_rect.height + 20)
+        color = BLANCO if i == 0 else AZUL
+        dibujar_texto(pantalla, x, y, texto, fuente, color, NEGRO)
 
-def cargar_preguntas(csv_path): # Esta va a mezcla el orden de las opciones de una sola pregunta, para que no estén siempre en el mismo orden.
-    preguntas = [] # Crea una lista vacía donde se van a guardar todas las preguntas del juego
-    with open(csv_path, encoding="utf-8") as f: #Abre el archivo CSV que contiene las preguntas # with se cierra automáticamente después de usarlo #
-        reader = csv.DictReader(f) # para leer el archivo CSV y convertir cada fila en un diccionario
-        for row in reader: # Recorre cada fila del archivo como un diccionario
-            opciones = [  #Crea una lista de opciones posibles para mostrar al jugardor. 3 incorrectas y una correcta.
-                row["respuesta1"],
-                row["respuesta2"],
-                row["respuesta3"],
-                row["respuesta_correcta"]
-            ]
-            preguntas.append({           #agrga u nuevo eleemnto alfianl del diccionario
-                "pregunta": row["pregunta"],
-                "opciones": opciones,
-                "correcta": row["respuesta_correcta"],
-                "dificultad": row["dificultad"]
-            })
-    random.shuffle(preguntas) # Revuelve la lista preguntas entera para que no aparezcan siempre en el mismo orden
-    return preguntas #  Devuelve toda la lista lista preguntas al que la llamó.
+def pedir_nombre(pantalla, fuente, fondo, puntos):
+    nombre = ""
+    escribiendo = True
 
-
-def preparar_pregunta(pregunta): # 4 opciones de una pregunta mezcla el orden y muestra en pantalla
-    opciones = pregunta["opciones"].copy() #accede a la lista de respuestas
-    random.shuffle(opciones) #mezcla el orden
-    return opciones # función devuelve la lista mezclada para usarla en el juego.
-
-
-def jugar(pantalla):
-    comodines = {"pasar": True}  # Solo uno por ahora
-    clock = pygame.time.Clock()
-    fuente = pygame.font.SysFont("Comic Sans MS", 16, bold=True)
-
-    # cargar imágenes
-    fondo = cargar_imagen("recursos/fondo.png", (ANCHO, ALTO))
-    boton_img = cargar_imagen("recursos/boton.png")
-    boton_ancho, boton_alto = boton_img.get_size()
-
-    # cargar sonidos
-    sonido_bien = cargar_sonido("recursos/bien.mp3")
-    sonido_mal  = cargar_sonido("recursos/mal.mp3")
-
-    preguntas = cargar_preguntas("preguntas.csv")
-    pregunta_idx = 0
-    puntaje = 0
-    vidas = 3
-
-    seleccionada = -1
-    feedback = ""
-    feedback_timer = 0
-
-    # preparar primera pregunta
-    pregunta = preguntas[pregunta_idx]
-    opciones = preparar_pregunta(pregunta)
-    correcta = pregunta["correcta"]
-
-    while True:
-        pantalla.blit(fondo, (0, 0))
-        # Mostrar comodines disponibles
-        txt_comodin = fuente.render(f"Pasar: {'Sí' if comodines['pasar'] else 'No'}", True, BLANCO)
-        pantalla.blit(txt_comodin, (10, 40))
-        rects_opciones = []
-
-        if pregunta_idx >= len(preguntas) or vidas <= 0:
-            # Fin del juego: pedir nombre y guardar puntaje
-            nombre = ""
-            escribiendo = True
-
-            while escribiendo:
-                for evento in pygame.event.get():
-                    if evento.type == pygame.QUIT:
-                        pygame.quit()
-                        sys.exit()
-                    elif evento.type == pygame.KEYDOWN:
-                        if evento.key == pygame.K_RETURN and len(nombre) >= 3:
-                            guardar_puntaje(nombre, puntaje)
-                            escribiendo = False
-                        elif evento.key == pygame.K_p and comodines["pasar"]:
-                             pregunta_idx += 1
-                             comodines["pasar"] = False
-                             break
-                        elif evento.key == pygame.K_BACKSPACE:
-                            nombre = nombre[:-1]
-                        elif evento.unicode.isalpha() and len(nombre) < 10:
-                            nombre += evento.unicode
-
-                pantalla.blit(fondo, (0, 0))
-                texto = fuente.render(f"Ingrese su nombre: {nombre}", True, BLANCO)
-                rect = texto.get_rect(center=(ANCHO // 2, ALTO // 2))
-                pantalla.blit(texto, rect)
-
-                aviso = fuente.render("ENTER para guardar", True, AZUL)
-                rect2 = aviso.get_rect(center=(ANCHO // 2, ALTO // 2 + 50))
-                pantalla.blit(aviso, rect2)
-
-                pygame.display.flip()
-                clock.tick(FPS)
-
-            return  # <--- este return SOLO se ejecuta al finalizar el juego
-
-        # Mostrar puntaje y vidas
-        txt_puntaje = fuente.render(f"Puntaje: {puntaje}", True, BLANCO)
-        pantalla.blit(txt_puntaje, (10, 10))
-        txt_vidas = fuente.render(f"Vidas: {vidas}", True, BLANCO)
-        pantalla.blit(txt_vidas, (ANCHO - 150, 10))
-
-        # Mostrar pregunta
-        render = fuente.render(pregunta["pregunta"], True, BLANCO)
-        rect = render.get_rect(center=(ANCHO//2, 100))
-        pantalla.blit(render, rect)
-
-        # Mostrar opciones con botones
-        for i, texto in enumerate(opciones):
-            x = (ANCHO - boton_ancho) // 2
-            y = 200 + i * (boton_alto + 20)
-            color_texto = AZUL if i == seleccionada else BLANCO
-
-            pantalla.blit(boton_img, (x, y))
-
-            render_op = fuente.render(texto, True, color_texto)
-            rect_op = render_op.get_rect(center=(x + boton_ancho//2, y + boton_alto//2))
-            pantalla.blit(render_op, rect_op)
-
-            rect_boton = pygame.Rect(x, y, boton_ancho, boton_alto)
-            rects_opciones.append(rect_boton)
-
-        # Mostrar feedback
-        if feedback and pygame.time.get_ticks() - feedback_timer < 1000:
-            color_fb = AZUL if feedback == "Correcto!" else (255, 0, 0)
-            render_fb = fuente.render(feedback, True, color_fb)
-            rect_fb = render_fb.get_rect(center=(ANCHO//2, ALTO//2 + 200))
-            pantalla.blit(render_fb, rect_fb)
-        elif feedback and pygame.time.get_ticks() - feedback_timer >= 1000:
-            feedback = ""
-            pregunta_idx += 1
-            seleccionada = -1
-            if pregunta_idx < len(preguntas):
-                pregunta = preguntas[pregunta_idx]
-                opciones = preparar_pregunta(pregunta)
-                correcta = pregunta["correcta"]
-
-        pygame.display.flip()
-
-        # Manejar eventos
+    while escribiendo:
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 pygame.quit()
-                sys.exit()
-            elif evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_ESCAPE:
+                exit()
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_RETURN and nombre.strip():
+                    escribiendo = False
+                elif evento.key == pygame.K_BACKSPACE:
+                    nombre = nombre[:-1]
+                else:
+                    char = evento.unicode
+                    if char.isalnum() or char.isspace():
+                        nombre += char
+
+        pantalla.blit(fondo, (0, 0))
+        mostrar_final(pantalla, fuente, puntos)
+
+        mensaje = "Ingrese su nombre:"
+        text_rect = fuente.get_rect(mensaje)
+        x_msg = (ANCHO - text_rect.width) // 2
+        y_msg = ALTO // 2
+        dibujar_texto(pantalla, x_msg, y_msg, mensaje, fuente, BLANCO, NEGRO)
+
+        nombre_rect = fuente.get_rect(nombre)
+        x_nombre = (ANCHO - nombre_rect.width) // 2
+        y_nombre = y_msg + text_rect.height + 20
+        dibujar_texto(pantalla, x_nombre, y_nombre, nombre, fuente, AZUL, NEGRO)
+
+        pygame.display.flip()
+
+    return nombre.strip()
+
+def jugar(pantalla, fuente, clock, fps):
+    img_fondo = get_imagen("recursos/jugar_fondo.png", (ANCHO, ALTO))
+    img_boton = get_imagen("recursos/boton.png", (ESCALAR*.40, ESCALAR*.10))
+    boton_ancho, boton_alto = img_boton.get_size()
+
+    dificultad = get_parametro("Juego", "Dificultad", str)
+    vidas = get_parametro(dificultad, "Vidas_Iniciales", int)
+    preguntas = cargar_preguntas(dificultad)
+
+    puntos = 0
+    aciertos_seguidos = 0
+    comodin_pasar = True
+    
+    tiempo_general = get_parametro("Juego", "Tiempo_General", str).capitalize() == "Si"
+
+    if tiempo_general:
+        tiempo_limite = get_parametro(dificultad, "tiempo_segundos", int) * 1000
+        inicio_tiempo = pygame.time.get_ticks()
+        poco_tiempo = False
+
+    while vidas > 0:
+        if not preguntas:
+            dificultad = siguiente_dificultad(dificultad)
+            preguntas = cargar_preguntas(dificultad)
+
+        if not tiempo_general:
+            tiempo_limite = get_parametro(dificultad, "tiempo_segundos", int) * 1000
+            inicio_tiempo = pygame.time.get_ticks()
+            poco_tiempo = False
+
+        pantalla.blit(img_fondo, (0, 0))
+
+        p = preguntas.pop()
+        opciones = [p["respuesta1"], p["respuesta2"], p["respuesta3"], p["respuesta_correcta"]]
+        opcion_correcta = p["respuesta_correcta"]
+        random.shuffle(opciones)
+
+        opcion_seleccionada = 0
+        rects_opciones = []
+        contestada = False
+
+        while not contestada:
+            tiempo_restante = tiempo_limite - (pygame.time.get_ticks() - inicio_tiempo)
+            segundos = max(0, tiempo_restante // 1000)
+
+            if segundos == 4 and not poco_tiempo:
+                sfx("tictac")
+                poco_tiempo = True
+
+            if segundos <= 0:
+                sfx("alarma")
+                sfx("mal")
+                if not tiempo_general:
+                    puntos -= get_parametro(dificultad, "puntos_por_desacierto", int)
+                    aciertos_seguidos = 0
+                    poco_tiempo = False
+                    vidas -= 1
+                else:
+                    vidas = 0
+                contestada = True
+                continue
+            
+            rects_opciones.clear()
+            pantalla.blit(img_fondo, (0, 0))
+
+            lineas = dividir_texto(p["pregunta"])
+
+            for pos_x, linea in enumerate(lineas):
+                rect_linea = fuente.get_rect(linea)
+                x_linea = (ANCHO - rect_linea.width) // 2
+                y_linea = ESCALAR*.15 + pos_x * (rect_linea.height + 5)
+                dibujar_texto(pantalla, x_linea, y_linea, linea, fuente, BLANCO, NEGRO)
+
+            for i, opcion in enumerate(opciones):
+                x = (ANCHO - boton_ancho) // 2
+                y = ALTO // 2.8 + i * (boton_alto + 20)
+
+                color = AZUL if i == opcion_seleccionada else BLANCO
+
+                pantalla.blit(img_boton, (x, y))
+                rect_opcion = fuente.get_rect(opcion)
+                text_x = x + (boton_ancho // 2) - rect_opcion.width // 2
+                text_y = y + (boton_alto // 2) - rect_opcion.height // 2
+                dibujar_texto(pantalla, text_x, text_y, opcion, fuente, color, NEGRO)
+
+                rects_opciones.append(pygame.Rect(x, y, boton_ancho, boton_alto))
+
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_p] and comodin_pasar:
+                sfx("boton")
+                comodin_pasar = False
+                contestada = True
+                continue
+
+            comodin_texto = "Tecla P: Omitir pregunta" if comodin_pasar else "Comodín usado"
+            comodin_color = BLANCO if comodin_pasar else GRIS
+            
+            dibujar_texto(pantalla, 40, ALTO - 160, comodin_texto, fuente, comodin_color, NEGRO)
+            dibujar_texto(pantalla, 40, ALTO - 120, f"Tiempo: {segundos}", fuente, BLANCO, NEGRO)
+            dibujar_texto(pantalla, 40, ALTO - 80, f"Vidas: {vidas}", fuente, BLANCO, NEGRO)
+            dibujar_texto(pantalla, 40, ALTO - 40, f"Puntos: {puntos}", fuente, BLANCO, NEGRO)
+
+            opcion_seleccionada, accion = monitorear_eventos(opciones, opcion_seleccionada, rects_opciones, True)
+
+            match accion:
+                case "Volver":
                     return
-                elif evento.key in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]:
-                    if feedback == "":
-                        seleccionada = evento.key - pygame.K_1
-            elif evento.type == pygame.MOUSEBUTTONDOWN:
-                if evento.button == 1 and feedback == "":
-                    pos = evento.pos
-                    for i, rect in enumerate(rects_opciones):
-                        if rect.collidepoint(pos):
-                            seleccionada = i
+                case _ if accion == opcion_correcta:
+                    sfx("bien")
+                    puntos += get_parametro(dificultad, "puntos_por_acierto", int)
+                    aciertos_seguidos += 1
+                    vidas, aciertos_seguidos, comodin_pasar, inicio_tiempo = comprobar_aciertos(vidas, aciertos_seguidos, comodin_pasar, inicio_tiempo, tiempo_general, dificultad)
+                    contestada = True
+                case _ if accion is not None:
+                    sfx("mal")
+                    puntos -= get_parametro(dificultad, "puntos_por_desacierto", int)
+                    vidas -= 1
+                    aciertos_seguidos = 0
+                    contestada = True
 
-        # Evaluar respuesta
-        if seleccionada != -1 and feedback == "":
-            if opciones[seleccionada] == correcta:
-                puntaje += 10
-                feedback = "Correcto!"
-                sonido_bien.play()
-            else:
-                vidas -= 1
-                feedback = "Incorrecto!"
-                sonido_mal.play()
-            feedback_timer = pygame.time.get_ticks()
+            pygame.display.flip()
+            clock.tick(fps)
 
-        clock.tick(FPS)
+    img_fondo = get_imagen("recursos/config_fondo.png", (ANCHO, ALTO))
+    nombre = pedir_nombre(pantalla, fuente, img_fondo, puntos)
+    guardar_partida(nombre, puntos)
 
-def mostrar_top10():
-    try:
-        with open("partidas.json", "r") as archivo:
-            top10 = json.load(archivo)
-    except FileNotFoundError:
-        top10 = []
-
-    print("=== TOP 10 ===")
-    for idx, jugador in enumerate(top10[:10], 1):
-        print(f"{idx}. {jugador['nombre']} - {jugador['puntaje']} pts - {jugador['fecha']}")
+    pygame.display.flip()
+    

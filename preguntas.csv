@@ -1,11 +1,48 @@
 pregunta,respuesta1,respuesta2,respuesta3,respuesta_correcta,dificultad
-¿Cuál es la capital de Francia?,Berlín,Madrid,Roma,París,FÁCIL
-¿Cuál es el resultado de 5 x 6?,20,15,25,30,FÁCIL
-¿Quién escribió Don Quijote?,Shakespeare,Borges,Neruda,Miguel de Cervantes,MEDIO
-¿Qué planeta es conocido como el planeta rojo?,Venus,Júpiter,Saturno,Marte,FÁCIL
-¿En qué año llegó el hombre a la Luna?,1965,1975,1980,1969,MEDIO
-¿Cuál es el metal más ligero?,Oro,Plomo,Hierro,Litio,MEDIO
-¿Quién pintó La última cena?,Van Gogh,Picasso,Rembrandt,Leonardo da Vinci,MEDIO
-¿Cuál es el río más largo del mundo?,Misisipi,Yangtsé,Danubio,Amazonas,DIFÍCIL
-¿Quién formuló la teoría de la relatividad?,Newton,Galileo,Kepler,Albert Einstein,FÁCIL
-¿Cuál es la raíz cuadrada de 144?,10,11,15,12,FÁCIL
+¿Cuál es el color del cielo en un día despejado?,Verde,Rojo,Amarillo,Azul,Facil
+¿Cuántas patas tiene un perro?,Dos,Ocho,Seis,Cuatro,Facil
+¿Qué fruta es amarilla y se pela?,Manzana,Naranja,Uva,Plátano,Facil
+¿En qué estación cae nieve?,Verano,Primavera,Otoño,Invierno,Facil
+¿Qué animal dice "miau"?,Perro,Pato,Vaca,Gato,Facil
+¿Con qué parte del cuerpo caminamos?,Manos,Cabeza,Codos,Pies,Facil
+¿Cuál es la capital de Argentina?,Lima,Santiago,Montevideo,Buenos Aires,Facil
+¿Qué usamos para ver?,Oídos,Nariz,Boca,Ojos,Facil
+¿En qué planeta vivimos?,Marte,Júpiter,Venus,Tierra,Facil
+¿Cuál es el opuesto de día?,Mañana,Tarde,Amanecer,Noche,Facil
+¿Qué animal pone huevos?,Perro,Gato,Vaca,Gallina,Facil
+¿De qué color es el sol?,Azul,Verde,Rojo,Amarillo,Facil
+¿Qué líquido necesitamos para vivir?,Jugo,Leche,Gaseosa,Agua,Facil
+¿Quién conduce un autobús?,Doctor,Maestro,Carpintero,Chofer,Facil
+¿Qué usamos para escribir en un cuaderno?,Cepillo,Tenedor,Pelota,Lápiz,Facil
+¿Cuál es la raíz cuadrada de 64?,6,7,5,8,Medio
+¿Quién escribió 'Harry Potter'?,Suzanne Collins,Stephen King,Rick Riordan,J.K. Rowling,Medio
+¿Cuántos continentes hay?,4,5,6,7,Medio
+¿En qué año llegó el hombre a la luna?,1965,1975,1985,1969,Medio
+¿Qué país tiene forma de bota?,España,Francia,Grecia,Italia,Medio
+¿Quién pintó la Mona Lisa?,Picasso,Van Gogh,Dalí,Leonardo da Vinci,Medio
+¿Qué gas respiramos para vivir?,Hidrógeno,Nitrógeno,Dióxido de Carbono,Oxígeno,Medio
+¿Cuál es el río más largo del mundo?,Nilo,Misisipi,Danubio,Amazonas,Medio
+¿Quién descubrió América?,Napoleón,Simón Bolívar,George Washington,Cristóbal Colón,Medio
+¿Cuántos lados tiene un hexágono?,4,5,7,6,Medio
+¿En qué deporte se usa una red?,Golf,Atletismo,Béisbol,Tenis,Medio
+¿De qué están hechas las velas?,Plástico,Madera,Vidrio,Cera,Medio
+¿Cuál es el idioma más hablado del mundo?,Inglés,Hindi,Árabe,Chino,Medio
+¿Quién escribió 'Romeo y Julieta'?,Charles Dickens,Mark Twain,Victor Hugo,William Shakespeare,Medio
+¿Cuántos minutos tiene una hora?,30,45,90,60,Medio
+¿Quién fue el primer presidente de Estados Unidos?,Lincoln,Jefferson,Franklin,George Washington,Medio
+¿Cuál es el elemento más abundante en el universo?,Oxígeno,Hierro,Carbono,Hidrógeno,Dificil
+¿Quién formuló la teoría de la relatividad?,Newton,Galileo,Kepler,Einstein,Dificil
+¿En qué país se encuentra la Muralla China?,Japón,Corea,Tailandia,China,Dificil
+¿Cuál es el órgano más grande del cuerpo humano?,Corazón,Pulmón,Hígado,Piel,Dificil
+¿Cuál es la capital de Australia?,Sídney,Melbourne,Perth,Canberra,Dificil
+¿Quién es conocido como el padre de la computación?,Steve Jobs,Bill Gates,Elon Musk,Alan Turing,Dificil
+¿A qué velocidad viaja la luz?,300 km/s,3000 km/s,30.000 km/s,300.000 km/s,Dificil
+¿En qué año comenzó la Segunda Guerra Mundial?,1929,1942,1941,1939,Dificil
+¿Quién escribió 'La Odisea'?,Platón,Sócrates,Aristóteles,Homero,Dificil
+¿Cuál es el metal más ligero?,Oro,Hierro,Plomo,Litio,Dificil
+¿En qué país nació Nikola Tesla?,Alemania,Italia,Rusia,Croacia,Dificil
+¿Cuál es el planeta más grande del sistema solar?,Tierra,Marte,Saturno,Júpiter,Dificil
+¿Quién fue el primer hombre en el espacio?,Buzz Aldrin,Michael Collins,Yuri Gagarin,Neil Armstrong,Dificil
+¿Cuál es el símbolo químico del oro?,Ag,Cu,Fe,Au,Dificil
+¿Quién escribió 'Cien años de soledad'?,Pablo Neruda,Mario Vargas Llosa,Isabel Allende,Gabriel García Márquez,Dificil
+¿En qué océano se encuentra la Fosa de las Marianas?,Atlántico,Ártico,Índico,Pacífico,Dificil

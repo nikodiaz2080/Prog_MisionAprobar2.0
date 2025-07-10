@@ -1,100 +1,68 @@
 import pygame
-import sys
 
-from config import ANCHO, ALTO, BLANCO, AZUL, FPS
-from assets import cargar_imagen, cargar_sonido
+from assets import get_imagen, get_parametro, dibujar_texto
+from eventos import monitorear_eventos
 
+AZUL = get_parametro("Colores", "Azul", tuple)
+BLANCO = get_parametro("Colores", "Blanco", tuple)
+NEGRO = get_parametro("Colores", "Negro", tuple)
 
-def mostrar_menu(pantalla):
-    fondo = cargar_imagen("recursos/fondo.png", (ANCHO, ALTO))
-    icono = cargar_imagen("recursos/icono.png")
-    pygame.display.set_icon(icono)
+ANCHO = get_parametro("General", "Resolucion", tuple)[0]
+ALTO = get_parametro("General", "Resolucion", tuple)[1]
 
-    imagen_boton = cargar_imagen("recursos/boton.png")
-    boton_ancho, boton_alto = imagen_boton.get_size()
+ESCALAR = (ANCHO + ALTO) / 2
 
-    img_circulo = cargar_imagen("recursos/rueda1.png", (200, 200))
-    img_centro  = cargar_imagen("recursos/rueda2.png", (150, 150))
+def dibujar_menu(pantalla, fuente, clock, fps):
+    img_fondo = get_imagen("recursos/menu_fondo.png", get_parametro("General", "Resolucion", tuple))
+    img_boton = get_imagen("recursos/boton.png", (ESCALAR*.40, ESCALAR*.10))
+    img_circulo = get_imagen("recursos/rueda1.png", (ESCALAR*.30, ESCALAR*.30))
+    img_centro  = get_imagen("recursos/rueda2.png", (ESCALAR*.25, ESCALAR*.25))
 
-    # sonidos
-    pygame.mixer.music.load("recursos/musica.ogg")
-    pygame.mixer.music.set_volume(0.5)
-    pygame.mixer.music.play(-1)
+    boton_ancho, boton_alto = img_boton.get_size()
 
-    sonido_boton = cargar_sonido("recursos/boton.mp3")
-
-    # Fuente
-    fuente = pygame.font.SysFont("Comic Sans MS", 32, bold=True)
-
-    # Opciones del menú
-    opciones = [("jugar", "Jugar"),
-                ("top10", "Ver TOP 10"),
-                ("configuracion", "Configuración"),
-                ("salir", "Salir")]
-
+    opciones = ["JUGAR", "TOP 10", "AJUSTES", "SALIR"]
     opcion_seleccionada = 0
     rects_opciones = []
     angulo = 0
-
-    clock = pygame.time.Clock()
-
+    
     while True:
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            elif evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_UP:
-                    opcion_seleccionada = (opcion_seleccionada - 1) % len(opciones)
-                elif evento.key == pygame.K_DOWN:
-                    opcion_seleccionada = (opcion_seleccionada + 1) % len(opciones)
-                elif evento.key == pygame.K_RETURN:
-                    sonido_boton.play()
-                    return opciones[opcion_seleccionada][0]
-            elif evento.type == pygame.MOUSEMOTION:
-                pos = evento.pos
-                for i, rect in enumerate(rects_opciones):
-                    if rect.collidepoint(pos):
-                        opcion_seleccionada = i
-            elif evento.type == pygame.MOUSEBUTTONDOWN:
-                if evento.button == 1:
-                    for i, rect in enumerate(rects_opciones):
-                        if rect.collidepoint(evento.pos):
-                            sonido_boton.play()
-                            return opciones[i][0]
+        pantalla.blit(img_fondo, (0, 0))
+        opcion_seleccionada, accion = monitorear_eventos(opciones, opcion_seleccionada, rects_opciones, False)
 
-        pantalla.blit(fondo, (0, 0))
+        if accion:
+            return accion
+    
         rects_opciones.clear()
-
-        # Animación superior
-        angulo = animacion(pantalla, angulo, img_circulo, img_centro)
-
-        # Dibujar botones con texto centrado
-        for i, (clave, texto) in enumerate(opciones):
+        for i, opcion in enumerate(opciones):
             x = (ANCHO - boton_ancho) // 2
-            y = int(ALTO * 0.40) + i * (boton_alto + 30)
+            y = ALTO // 2.5 + i * (boton_alto + 20)
+            
+            color = AZUL if i == opcion_seleccionada else BLANCO
+            rect_texto = fuente.get_rect(opcion)
 
-            color_texto = AZUL if i == opcion_seleccionada else BLANCO
+            text_x = x + (boton_ancho // 2) - rect_texto.width // 2
+            text_y = y + (boton_alto // 2) - rect_texto.height // 2
 
-            pantalla.blit(imagen_boton, (x, y))
+            pantalla.blit(img_boton, (x, y))
+            dibujar_texto(pantalla, text_x, text_y, opcion, fuente, color, NEGRO)
 
-            render = fuente.render(texto, True, color_texto)
-            rect_texto = render.get_rect(center=(x + boton_ancho // 2, y + boton_alto // 2))
-            pantalla.blit(render, rect_texto)
-
-            rect_boton = pygame.Rect(x, y, boton_ancho, boton_alto)
-            rects_opciones.append(rect_boton)
+            rects_opciones.append(pygame.Rect(x, y, boton_ancho, boton_alto))
+        
+        centro = (ANCHO // 2, ALTO // 5)
+        angulo = animar_circulo(pantalla, angulo, img_circulo, img_centro, centro)
 
         pygame.display.flip()
-        clock.tick(FPS)
+        clock.tick(fps)
 
-
-def animacion(pantalla, angulo, img_circulo, img_centro):
+def animar_circulo(pantalla, angulo, img_circulo, img_centro, centro, velocidad=0.5):
+    # Rotar la imagen del círculo y centrarla
     circulo_rotado = pygame.transform.rotate(img_circulo, angulo)
-    rect_circulo = circulo_rotado.get_rect(center=(ANCHO // 2, ALTO // 5))
+    rect_circulo = circulo_rotado.get_rect(center=centro)
     pantalla.blit(circulo_rotado, rect_circulo)
 
-    rect_centro = img_centro.get_rect(center=(ANCHO // 2, ALTO // 5))
+    # Dibujar la imagen central encima
+    rect_centro = img_centro.get_rect(center=centro)
     pantalla.blit(img_centro, rect_centro)
 
-    return (angulo + 0.5) % 360
+    # Actualizar ángulo
+    return (angulo + velocidad) % 360
